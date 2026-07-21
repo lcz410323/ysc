@@ -1,0 +1,38 @@
+{
+  // 1. 必不可少的爬虫引擎 Jar 包（解决“什么也获取不到”的核心）
+  "spider": "https://fs-im-kefu.7moor-fs1.com/ly/41269419/f16af1e7061d5639/1691238914844/spider.jar;md5;f16af1e7061d5639",
+
+  "sites": [
+    {
+      "key": "izanmei_xbpq",
+      "name": "🎵 爱赞美诗歌",
+      "type": 3,
+      "api": "csp_XBPQ",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 1,
+      "ext": {
+        // 2. 伪装浏览器 User-Agent，突破网站防爬拦截
+        "请求头": "User-Agent$Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        
+        "主页url": "https://www.izanmei.cc",
+        
+        // 3. 原版栏目分类设置
+        "分类": "赞美诗歌$/a/zanmeishige/&赞美诗集$/a/zanmeishiji/&诗歌专辑$/a/zhuanji/&讲道讲章$/a/jiangdao/",
+        "分类url": "https://www.izanmei.cc{cateId}",
+        
+        // 4. XBPQ 页面列表切片与解析
+        "数组": "<li&&</li>",
+        "标题": "title=\"&&\"[a*>&&</a>]",
+        "链接": "href=\"&&\"",
+        "图片": "src=\"&&\"",
+        
+        // 5. 播放页音频/视频链接解析
+        "二次截取": "<body&&</body>",
+        "播放数组": "<a*href=\"*.mp3*\"&&/a>",
+        "播放标题": ">&&<",
+        "播放链接": "href=\"&&\""
+      }
+    }
+  ]
+}

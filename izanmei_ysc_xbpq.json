@@ -1,0 +1,70 @@
+{
+  "spider": "",
+  "sites": [
+    {
+      "key": "izanmei_xbpq",
+      "name": "爱赞美视频",
+      "type": 3,
+      "api": "csp_XBPQ",
+      "searchable": 1,
+      "quickSearch": 1,
+      "filterable": 0,
+      "ext": {
+        "主页url": "https://www.izanmei.cc",
+        "请求头": "User-Agent$Mozilla/5.0 (Linux; Android 12; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36#Referer$https://www.izanmei.cc/",
+        "编码": "UTF-8",
+        "分类": "全部$0#MV&现场$1703#歌词字幕$1701#赞美舞蹈$1704#见证访谈$1708#诗歌故事$1706#赞美会$1702",
+        "分类url": "https://www.izanmei.cc/video/{cateId}_0_{catePg}.html",
+        "数组": "<li>&&class=\"ellipsis\"",
+        "标题": "title=\"点击观看\" class=\"ellipsis\">&&</a>",
+        "图片": "<img src=\"&&\"",
+        "副标题": "gray_link\"&&</a>",
+        "链接": "href=\"&&\"",
+        "链接前缀": "https://www.izanmei.cc",
+        "搜索url": "https://www.izanmei.cc/search/video/{wd}",
+        "搜索数组": "class=\"videoplay-icon\"&&gray_link",
+        "搜索标题": "title=\"观看视频&&\"",
+        "搜索图片": "<img src=\"&&\"",
+        "搜索链接": "href=\"&&\"",
+        "搜索链接前缀": "https://www.izanmei.cc",
+        "详情是否Jsoup写法": "1",
+        "类型": "视频</a> <span class=\"arrow\"> &gt; </span> <a&&</a>",
+        "导演": "音乐人：&&</div>",
+        "主演": "title=\"查看音乐人所有视频\">&&</a>",
+        "简介": "<div class='detail'&&</div>",
+        "线路数组": "<video&&</video>",
+        "线路标题": "爱赞美",
+        "播放数组": "<source&&>",
+        "播放标题": "size=\"&&\"",
+        "播放链接": "src=\"&&\"",
+        "播放链接前缀": "",
+        "免嗅": "1"
+      }
+    }
+  ],
+  "parses": [],
+  "flags": [],
+  "ijk": [
+    {
+      "group": "软解码",
+      "options": [
+        {
+          "category": 4,
+          "name": "opensles",
+          "value": "0"
+        },
+        {
+          "category": 4,
+          "name": "overlay-format",
+          "value": "842225234"
+        },
+        {
+          "category": 4,
+          "name": "framedrop",
+          "value": "1"
+        }
+      ]
+    }
+  ],
+  "lives": []
+}

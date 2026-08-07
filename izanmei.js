@@ -1,13 +1,17 @@
 // ============================================================
-// 爱赞美 · drpy2 蜘蛛脚本（正式发布版 v2：搜索结果带封面）
+// 爱赞美 · drpy2 蜘蛛脚本（正式发布版 v3：带封面 + 修复播放）
 // 对接 爱赞美 新版 JSON 接口
 //   专辑搜索: /search/album?f=json&page_no=<页>&page_size=<条>&q=<关键词>
 //   专辑详情: /album/info?album_id=<ID>
 //   歌曲播放: 专辑详情里每首的 mFileLink
 //
 // 展示逻辑：
-//   一级=专辑卡片（用官方专辑封面图 mPicSmall/mPicBig，天然带图、零额外请求）
+//   一级=专辑卡片（官方专辑封面 mPicBig/mPicSmall，自带图、零额外请求）
 //   二级=该专辑内歌曲列表，点击直接播放 mp3
+//
+// 播放修复：drpy2 在未配置 play_json 时会强制 parse:1（走解析流程），
+//   导致 .mp3 直链被解析器错误接管而无法播放。
+//   故增加 play_json:[{re:"*",json:{parse:0,jx:0}}] 强制直接播放 mp3。
 //
 // 使用方式：作为 影视仓 站点条目中的 ext 蜘蛛脚本
 //   { "key":"izanmei","name":"爱赞美","type":3,
@@ -66,6 +70,10 @@ var rule = {
         'vod_play_from:"爱赞美",vod_play_url:urls.join("#"),' +
         'vod_remarks:obj.mAuthor||"",vod_year:obj.mPublishTime||""};',
 
-    // ===== 播放：直接返回 mp3 链接，免解析 =====
+    // ===== 播放：强制直接播放 mp3，不走解析 =====
+    // 关键修复：不加 play_json 时 drpy2 会强制 parse:1（解析），mp3 直链因此播放失败。
+    // play_json 数组分支对任何 url(re="*") 应用 parse:0、jx:0，直接播放原链接。
+    play_json: [{ re: '*', json: { parse: 0, jx: 0 } }],
+
     lazy: 'js:input={parse:0,url:input,jx:0,header:{"User-Agent":"Mozilla/5.0","Referer":"https://www.izanmei.cc/"}}'
 };

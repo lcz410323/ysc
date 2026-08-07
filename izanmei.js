@@ -23,8 +23,14 @@ var rule = {
     quickSearch: 1,
     filterable: 0,
     timeout: 25000,
-    // mp3 直链无防盗链（已实测 200/206 正常），关闭解析直接直链最稳
-    play_parse: false,
+    // ★ 播放修复（v5）：mp3 已实测为 play.j53.net 直链（200/206 正常）。
+    //   但 drpy2 的 playParse() 在规则「未定义 play_json」时会于结尾强制 set parse=1，
+    //   导致直链 mp3 被影视仓当成"待解析"走一遍解析流程、播放器识别不到时长（显示0）。
+    //   解法：play_parse=true + 用 lazy 把 input 改成 {parse:0,url,jx:0} 直接播放，
+    //        且必须配 play_json:[]（空数组），否则会再次被 !play_json 分支覆盖回 parse=1。
+    play_parse: true,
+    lazy: 'js:input={parse:0,url:input,jx:0};',
+    play_json: [],
     headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
 
     // 推荐/首页：新专辑墙（VODS）

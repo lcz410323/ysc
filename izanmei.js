@@ -59,12 +59,15 @@ var rule = {
         'var pic=it.mPicSmall||it.mPicBig||"";' +
         'var link=PLAY+it.mSongId+".mp3";' +
 'VODS.push({vod_id:link+"@@"+name+"@@"+pic,vod_name:name,vod_pic:pic,vod_remarks:author});}',
-    // ===== 二级：专辑展开 / 单曲直链 =====
+    // ===== 二级：播放/专辑展开 =====
     二级: 'js:' +
         'var host="https://api.xiaohai.org/";var PLAY="https://play.j53.net/song/p/";' +
         'var raw=String(input||"").replace(/@@.*$/,"");' +
         'var cln=function(s){return String(s||"").replace(/[#$@]/g,"").replace(/\\s+$/,"");};' +
-        'if(raw.indexOf("ALBUM##")===0){' +
+        '/* mp3直链(搜索嗅探)直接放行播放，其余走专辑/单曲解析 */if(/\.mp3$/i.test(raw)){' +
+        'var dn=String(raw).split("/");VOD={vod_id:raw,vod_name:cln(dn[dn.length-1]),vod_pic:"",' +
+        'vod_play_from:"爱赞美直链",vod_play_url:raw};' +
+        '}else if(raw.indexOf("ALBUM##")===0){' +
         'var d=JSON.parse(request(host+"album/info?album_id="+raw.split("##")[1]).trim());' +
         'var its=(d&&d.mItems)||[];var al=[];' +
         'for(var ii=0;ii<its.length;ii++){var x=its[ii]||{};if(!x.mSongId)continue;var nm=cln(x.mTitle);al.push(nm+"$"+PLAY+x.mSongId+".mp3");}' +

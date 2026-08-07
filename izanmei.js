@@ -79,7 +79,7 @@ var rule = {
         'var s=JSON.parse(request(host+"song/info?song_id="+sid).trim());' +
         'var name=cln(s.mTitle);var author=cln(s.mAuthor);var album=cln(s.mAlbumTitle);' +
         'var pic=s.mPicBig||s.mPicSmall||"";' +
-        'var info="演唱："+author+"\n专辑："+album+"\n点击量："+(s.mHits||"");' +
+        'var info="演唱："+author+" ｜ 专辑："+album+" ｜ 点击量："+(s.mHits||"");' +
         'VOD={vod_id:"SONG##"+sid,vod_name:name,vod_pic:pic,vod_remarks:author+" - "+album,' +
         'vod_actor:author,vod_area:album,vod_director:album,vod_score:"爱赞美",vod_content:info,' +
         'vod_play_from:"爱赞美",vod_play_url:name+"$"+PLAY+sid+".mp3"};' +

@@ -1,20 +1,32 @@
-// 爱赞美 drpy2 蜘蛛（播放修复v4 · 修复详情页崩溃Bug）
-// =========================================================================
-// ★ 关键修复：vod_id 用 "SONG##id"/"ALBUM##id" 命名（不含 /、非 http），
-//   drpy2 的 detail() 会走 rule.detailUrl.replaceAll("fyid",...) 分支；
-//   若不定义 detailUrl 字段则直接 throw 崩溃，导致 详情无法打开→选集看不到→播放失败。
-//   因此必须提供 detailUrl 占位（'fyid'），让 detail() 正常把 vod_id 传给二级。
-// =========================================================================
-// 机制（见 drpy2.min.js 源码）：
-//   搜索/一级/推荐 → js 段用全局 VODS（复数）返回列表
-//   二级（详情）→ js 段用全局 VOD（单数）返回单个详情对象
-//   detail(): orId=vod_url; detailUrl=vod_url.split("@@")[0];
-//     若 detailUrl 不含"/"且非http → url=rule.detailUrl.replaceAll("fyid",detailUrl)
+// ============================================================
+// 爱赞美 drpy2 蜘蛛脚本 · 最终版 v6
+// 对接 爱赞美APK 新版 JSON API（全流程实测通过）
+// ============================================================
+// 接口：
+//   搜索: https://api.xiaohai.org/search/song?f=json&page_no=<页>&page_size=<条>&q=<关键词>
+//   详情: https://api.xiaohai.org/song/info?song_id=<歌曲ID>
+//   专辑: https://api.xiaohai.org/album/info?album_id=<专辑ID>
+//   歌词: https://api.xiaohai.org/song/lrc/<歌曲ID>.lrc
+//   播放: https://play.j53.net/song/p/<歌曲ID>.mp3   (直链 200/206 可播，无防盗链)
+//
+// ★ v6 播放加固说明（drpy2 playParse 反劫持）：
+//   drpy2 的 playParse() 结尾在「rule.play_json 为空/未定义」时会强制 set parse=1，
+//   把直链 mp3 误判成"待解析"，导致影视仓提示"暂无播放数据"。
+//   解法：play_parse=true + lazy 用 input 直接返回纯直链对象，
+//   且 play_json 用【非空数组】显式 {parse:0,jx:0} 走 assign 分支，
+//   100% 保住 parse=0（不再依赖"空数组不覆盖"这种易漂移的边界行为）。
+//
+// 站点注册（izanmei.json 里）：
+//   { "key":"izanmei","name":"爱赞美","type":3, "playerType":2,
+//     "api":"<drpy2.min.js 的URL>","ext":"<本文件 izanmei.js 的URL>",
+//     "searchable":1,"quickSearch":1,"filterable":0,"timeout":20 }
+// ============================================================
+
 var rule = {
     title: '爱赞美',
     host: 'https://api.xiaohai.org',
     url: 'https://api.xiaohai.org/album/list?f=json&page_no=fypage',
-    // ★ 必填：vod_id为纯标识时让 detail() 不崩溃，'fyid' 占位原样回传
+    // ★ 必填：vod_id 为纯标识（SONG##id / ALBUM##id）时让 detail() 不崩溃，'fyid' 占位原样回传
     detailUrl: 'fyid',
     class_name: '全部专辑',
     class_url: 'album/list',
@@ -23,14 +35,10 @@ var rule = {
     quickSearch: 1,
     filterable: 0,
     timeout: 25000,
-    // ★ 播放修复（v5）：mp3 已实测为 play.j53.net 直链（200/206 正常）。
-    //   但 drpy2 的 playParse() 在规则「未定义 play_json」时会于结尾强制 set parse=1，
-    //   导致直链 mp3 被影视仓当成"待解析"走一遍解析流程、播放器识别不到时长（显示0）。
-    //   解法：play_parse=true + 用 lazy 把 input 改成 {parse:0,url,jx:0} 直接播放，
-    //        且必须配 play_json:[]（空数组），否则会再次被 !play_json 分支覆盖回 parse=1。
+    // ★ v6 播放加固：parse 铁定 0，直链 mp3 直接播放
     play_parse: true,
     lazy: 'js:input={parse:0,url:input,jx:0};',
-    play_json: [],
+    play_json: [ { re: "*", json: { parse: 0, jx: 0 } } ],
     headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
 
     // 推荐/首页：新专辑墙（VODS）

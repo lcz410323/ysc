@@ -1,29 +1,17 @@
 // ============================================================
-// 爱赞美 drpy2 蜘蛛脚本
-// 对接 爱赞美 新版 JSON API（已全流程实测通过）
-//
-// 接口：
-//   搜索: https://api.xiaohai.org/search/song?f=json&page_no=<页>&page_size=<条>&q=<关键词>
-//   详情: https://api.xiaohai.org/song/info?song_id=<ID>
-//   歌词: https://api.xiaohai.org/song/lrc/<ID>.lrc
-//   播放: https://play.j53.net/song/p/<ID>.mp3
-//
-// 影视仓站点条目（config 里）：
-//   { "key":"izanmei","name":"爱赞美","type":3,
-//     "api":"https://gh-proxy.com/https://raw.githubusercontent.com/lcz410323/ysc/main/drpy2.min.js",
-//     "ext":"https://gh-proxy.com/https://raw.githubusercontent.com/lcz410323/ysc/main/izanmei.js",
-//     "searchable":1,"quickSearch":1,"filterable":0,"timeout":20 }
+// 爱赞美 drpy2 蜘蛛脚本（vod_id 直传完整 API 链接版）
 // ============================================================
 
 var rule = {
     title: '爱赞美',
     host: 'https://api.xiaohai.org',
 
-    // 分类（主页入口，实际以搜索为主）
-    class_name: '爱赞美',
-    class_url: 'hot',
+    // 分类入口（专辑列表）
+    class_name: '所有专辑',
+    class_url: 'album/list?f=json&page_no=fypage',
+    url: 'https://api.xiaohai.org/album/list?f=json&page_no=fypage',
 
-    // 搜索：** 占位会被 drpy2 替换为关键词（js 内不使用 MY_URL，自行编码）
+    // 搜索入口（单曲搜索）
     searchUrl: 'https://api.xiaohai.org/search/song?f=json&page_no=1&page_size=20&q=**',
 
     searchable: 2,
@@ -33,31 +21,171 @@ var rule = {
     play_parse: true,
 
     headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*'
     },
 
-    // ===== 搜索：纯 JS 解析 JSON =====
-    // 搜索 js 上下文可用：KEY(关键词)、MY_URL、HOST、request()
-    // 结果赋给 VODS 数组。
-    // vod_id = mp3完整链接 + @@歌曲名 + @@封面，配合"二级:'*'" 直接嗅探播放
-    搜索: 'js:' +
-        'var PLAY = "https://play.j53.net/song/p/";' +
-        'var q = encodeURIComponent(KEY || "");' +
-        'var u = "https://api.xiaohai.org/search/song?f=json&page_no=1&page_size=20&q=" + q;' +
-        'var h = request(u).trim();' +
-        'var obj = JSON.parse(h);' +
-        'var items = (obj && obj.mItems) || [];' +
-        'VODS = [];' +
-        'for (var i=0;i<items.length;i++){var it=items[i];if(!it||!it.mSongId)continue;' +
-        'var name=it.mTitle||"";var author=it.mAuthor||"";' +
-        'var pic=it.mPicSmall||it.mPicBig||"";' +
-        'var link=PLAY+it.mSongId+".mp3";' +
-        'VODS.push({vod_id:link+"@@"+name+"@@"+pic,vod_name:name,vod_pic:pic,vod_remarks:author});}',
+    // 1. 首页推荐：vod_id 组装为完整的专辑详情 API 链接
+    推荐: `js:
+        var u = "https://api.xiaohai.org/album/list?f=json&page_no=1";
+        VODS = [];
+        try {
+            var h = request(u).trim();
+            var obj = JSON.parse(h);
+            var items = (obj && obj.mItems) || [];
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                if (!it || !it.mAlbumId) continue;
+                
+                var author = String(it.mAuthor || "").trim();
+                var total = it.mSongsTotal ? ("共" + it.mSongsTotal + "首") : "";
+                var pubTime = it.mPublishTime || "";
+                
+                VODS.push({
+                    // 直接将 vod_id 组装成完整的专辑详情 API 地址
+                    vod_id: "https://api.xiaohai.org/album/info?album_id=" + it.mAlbumId,
+                    vod_name: String(it.mTitle || "").trim(),
+                    vod_pic: it.mPicSmall || "",
+                    vod_remarks: [author, total, pubTime].filter(Boolean).join(" · ")
+                });
+            }
+        } catch(e) { log("推荐加载失败: " + e.message); }
+    `,
 
-    // 二级：* 表示不专门解析详情，直接使用一级链接（mp3）嗅探播放
-    二级: '*',
+    // 2. 一级分类页：vod_id 同理组装为完整 API 链接
+    一级: `js:
+        var u = input;
+        if (u.indexOf("http") < 0) { u = "https://api.xiaohai.org/" + u; }
+        VODS = [];
+        try {
+            var h = request(u).trim();
+            var obj = JSON.parse(h);
+            var items = (obj && obj.mItems) || [];
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                if (!it || !it.mAlbumId) continue;
+                
+                var author = String(it.mAuthor || "").trim();
+                var total = it.mSongsTotal ? ("共" + it.mSongsTotal + "首") : "";
+                var pubTime = it.mPublishTime || "";
+                
+                VODS.push({
+                    vod_id: "https://api.xiaohai.org/album/info?album_id=" + it.mAlbumId,
+                    vod_name: String(it.mTitle || "").trim(),
+                    vod_pic: it.mPicSmall || "",
+                    vod_remarks: [author, total, pubTime].filter(Boolean).join(" · ")
+                });
+            }
+        } catch(e) { log("一级列表加载失败: " + e.message); }
+    `,
 
-    // 播放：直接返回 mp3 链接，免解析
+    // 3. 搜索页：提取 mAlbumId 组装为对应专辑的完整 API 链接
+    // 3. 搜索页：带封面补全与缓存机制
+    搜索: `js:
+        VODS = [];
+        try {
+            var h = request(input).trim();
+            var obj = JSON.parse(h);
+            var items = (obj && obj.mItems) || [];
+            var picCache = {}; // 建立封面缓存池，防止重复请求卡顿
+            
+            for (var i = 0; i < items.length; i++) {
+                var it = items[i];
+                if (!it || !it.mAlbumId) continue;
+                
+                var aid = String(it.mAlbumId);
+                var songName = String(it.mTitle || "").trim();
+                var author = String(it.mAuthor || "未知艺术家").trim();
+                var albumTitle = String(it.mAlbumTitle || "").trim();
+                var pic = "";
+                
+                // 动态获取封面：优先查缓存，查不到再去请求 album/info 接口
+                if (picCache[aid]) {
+                    pic = picCache[aid];
+                } else {
+                    try {
+                        var infoUrl = "https://api.xiaohai.org/album/info?album_id=" + aid;
+                        var infoRes = request(infoUrl).trim();
+                        var infoObj = JSON.parse(infoRes);
+                        pic = infoObj.mPicSmall || infoObj.mPicBig || "";
+                        if (pic) { picCache[aid] = pic; } // 写入缓存
+                    } catch(err) {
+                        log("封面补全失败: " + err.message);
+                    }
+                }
+                
+                VODS.push({
+                    vod_id: "https://api.xiaohai.org/album/info?album_id=" + aid,
+                    vod_name: songName,
+                    vod_pic: pic, // 精准显示的专辑封面
+                    vod_remarks: author + (albumTitle ? (" · 《" + albumTitle + "》") : "")
+                });
+            }
+        } catch(e) { log("搜索解析失败: " + e.message); }
+    `,
+
+
+    // 4. 二级详情页：input 已经是完整的 API 请求链接，直接发起请求
+    二级: `js:
+        var infoUrl = String(input || "").trim();
+
+        try {
+            // 直接请求 input (即上一级组装好的 API 链接)
+            var h = request(infoUrl).trim();
+            var d = JSON.parse(h);
+            
+            // 提取歌曲列表并使用接口给出的 mFileLink 直链
+            var songs = (d && d.mItems) || [];
+            var playList = [];
+            for (var j = 0; j < songs.length; j++) {
+                var x = songs[j];
+                if (!x || !x.mFileLink) continue;
+                
+                var sTitle = String(x.mTitle || ("Track " + (j + 1)))
+                                .replace(/[#$@$\\r\\n]/g, "")
+                                .trim();
+                var ord = x.mSongOrder || (j + 1);
+                var numStr = (ord < 10) ? ("0" + ord) : String(ord);
+                
+                // 使用 JSON 中的 mFileLink 原生 MP3 直链
+                playList.push(numStr + ". " + sTitle + "$" + String(x.mFileLink).trim());
+            }
+
+            // 读取 JSON 中的元数据填充 UI 界面
+            var albName = String(d.mTitle || "音乐专辑").replace(/[#$@#]/g, "").trim();
+            var albPic = d.mPicBig || d.mPicSmall || "";
+            var albAuthor = String(d.mAuthor || "未知艺术家").trim();
+            var albType = (d.mAlbumType || "专辑") + (d.mAlbumGenre ? (" · " + d.mAlbumGenre) : "");
+            var albLang = d.mAlbumLang || "国语";
+            var albPubTime = d.mPublishTime || "";
+            var albInfo = String(d.mInfo || d.mDetail || "暂无专辑介绍").replace(/[#$@#]/g, "").trim();
+            var albTotal = d.mSongsTotal || playList.length;
+
+            VOD = {
+                vod_id: infoUrl,
+                vod_name: albName,
+                vod_pic: albPic,
+                type_name: albType,
+                vod_actor: albAuthor,
+                vod_area: albLang,
+                vod_year: albPubTime,
+                vod_remarks: "全辑共 " + albTotal + " 首曲目",
+                vod_content: albInfo,
+                vod_play_from: "爱赞美原声",
+                vod_play_url: playList.join("#")
+            };
+
+        } catch(e) {
+            log("专辑详情抓取异常: " + e.message);
+            VOD = {
+                vod_id: infoUrl,
+                vod_name: "数据加载异常",
+                vod_play_from: "爱赞美原声",
+                vod_play_url: "加载失败$https://play.j53.net/"
+            };
+        }
+    `,
+
+    // 5. 播放配置（免浏览器渲染嗅探）
     lazy: 'js:input={parse:0,url:input,jx:0,header:{"User-Agent":"Mozilla/5.0","Referer":"https://www.izanmei.cc/"}}'
 };

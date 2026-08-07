@@ -1,0 +1,18 @@
+{
+  "spider": "",
+  "sites": [
+    {
+      "key": "izanmei_js",
+      "name": "爱在M站(引擎版)",
+      "type": 3,
+      "api": "https://你的托管地址/drpy2.min.js",
+      "ext": "https://你的托管地址/izanmei_rule.js",
+      "searchable": 1,
+      "quickSearch": 0,
+      "filterable": 0,
+      "changeable": 0
+    }
+  ],
+  "parses": [],
+  "lives": []
+}

@@ -1,5 +1,5 @@
 // ============================================================
-// 爱赞美 drpy2 蜘蛛脚本 · 最终版 v6
+// 爱赞美 drpy2 蜘蛛脚本 · 最终版 v7
 // 对接 爱赞美APK 新版 JSON API（全流程实测通过）
 // ============================================================
 // 接口：
@@ -9,7 +9,7 @@
 //   歌词: https://api.xiaohai.org/song/lrc/<歌曲ID>.lrc
 //   播放: https://play.j53.net/song/p/<歌曲ID>.mp3   (直链 200/206 可播，无防盗链)
 //
-// ★ v6 播放加固说明（drpy2 playParse 反劫持）：
+// ★ v7 选集名修复说明（drpy2 playParse 反劫持）：
 //   drpy2 的 playParse() 结尾在「rule.play_json 为空/未定义」时会强制 set parse=1，
 //   把直链 mp3 误判成"待解析"，导致影视仓提示"暂无播放数据"。
 //   解法：play_parse=true + lazy 用 input 直接返回纯直链对象，
@@ -51,5 +51,5 @@ var rule = {
     搜索: 'js:var host="https://api.xiaohai.org/";var q=encodeURIComponent(KEY||"");var obj=JSON.parse(request(host+"search/song?f=json&page_no=1&page_size=15&q="+q).trim());var items=(obj&&obj.mItems)||[];VODS=[];var i,it,id,pic;for(i=0;i<items.length;i++){it=items[i]||{};id=it.mSongId;if(!id)continue;pic="";try{var d=JSON.parse(request(host+"song/info?song_id="+id).trim());pic=d.mPicBig||d.mPicSmall||"";}catch(e){pic="";}VODS.push({vod_id:"SONG##"+id,vod_name:String(it.mTitle||"").replace(/[#$@]/g,""),vod_pic:pic,vod_remarks:String(it.mAuthor||"").replace(/[#$@]/g,"")+" - "+String(it.mAlbumTitle||"").replace(/[#$@]/g,"")});}',
 
     // 二级 详情：VOD 单数（input=vod_id，如 SONG##id / ALBUM##id）
-    二级: 'js:var host="https://api.xiaohai.org/";var PLAY="https://play.j53.net/song/p/";var raw=String(input||"").replace(/@@.*$/,"");var cln=function(s){return String(s||"").replace(/[#$@]/g,"").replace(/\\s+$/,"");};if(raw.indexOf("ALBUM##")===0){var d=JSON.parse(request(host+"album/info?album_id="+raw.split("##")[1]).trim());var items=(d&&d.mItems)||[];var al=[];for(var i=0;i<items.length;i++){var x=items[i]||{};if(!x.mSongId)continue;var nm=cln(x.mTitle);var t=(x.mSongOrder?x.mSongOrder+". ":"")+nm;al.push(t+"$"+PLAY+x.mSongId+".mp3");}VOD={vod_id:"ALBUM##"+raw.split("##")[1],vod_name:cln(d.mAlbumTitle||d.mTitle),vod_pic:(d.mPicBig||d.mPicSmall)||"",vod_remarks:(cln(d.mAuthor))+"-"+(items.length?("共"+items.length+"首"):""),vod_actor:cln(d.mAuthor),vod_area:(d.mPublishTime||""),vod_play_from:"爱赞美-专辑",vod_play_url:al.join("#")};}else{var sid=raw.indexOf("SONG##")===0?raw.split("##")[1]:raw;var s=JSON.parse(request(host+"song/info?song_id="+sid).trim());var name=cln(s.mTitle);var author=cln(s.mAuthor);var album=cln(s.mAlbumTitle);var pic=s.mPicBig||s.mPicSmall||"";var info="演唱："+author+"\\n专辑："+album+"\\n点击量："+(s.mHits||"");VOD={vod_id:"SONG##"+sid,vod_name:name,vod_pic:pic,vod_remarks:author+" - "+album,vod_actor:author,vod_area:album,vod_director:album,vod_score:"爱赞美",vod_content:info,vod_play_from:"爱赞美",vod_play_url:name+"$"+PLAY+sid+".mp3"}}'
+    二级: 'js:var host="https://api.xiaohai.org/";var PLAY="https://play.j53.net/song/p/";var raw=String(input||"").replace(/@@.*$/,"");var cln=function(s){return String(s||"").replace(/[#$@]/g,"").replace(/\\s+$/,"");};if(raw.indexOf("ALBUM##")===0){var d=JSON.parse(request(host+"album/info?album_id="+raw.split("##")[1]).trim());var items=(d&&d.mItems)||[];var al=[];for(var i=0;i<items.length;i++){var x=items[i]||{};if(!x.mSongId)continue;var nm=cln(x.mTitle);al.push(nm+"$"+PLAY+x.mSongId+".mp3");}VOD={vod_id:"ALBUM##"+raw.split("##")[1],vod_name:cln(d.mAlbumTitle||d.mTitle),vod_pic:(d.mPicBig||d.mPicSmall)||"",vod_remarks:(cln(d.mAuthor))+"-"+(items.length?("共"+items.length+"首"):""),vod_actor:cln(d.mAuthor),vod_area:(d.mPublishTime||""),vod_play_from:"爱赞美专辑",vod_play_url:al.join("#")};}else{var sid=raw.indexOf("SONG##")===0?raw.split("##")[1]:raw;var s=JSON.parse(request(host+"song/info?song_id="+sid).trim());var name=cln(s.mTitle);var author=cln(s.mAuthor);var album=cln(s.mAlbumTitle);var pic=s.mPicBig||s.mPicSmall||"";var info="演唱："+author+"\\n专辑："+album+"\\n点击量："+(s.mHits||"");VOD={vod_id:"SONG##"+sid,vod_name:name,vod_pic:pic,vod_remarks:author+" - "+album,vod_actor:author,vod_area:album,vod_director:album,vod_score:"爱赞美",vod_content:info,vod_play_from:"爱赞美",vod_play_url:name+"$"+PLAY+sid+".mp3"}}'
 };

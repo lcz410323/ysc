@@ -1,79 +1,47 @@
-// ============================================================
-// 爱赞美 · drpy2 蜘蛛脚本（正式发布版 v3：带封面 + 修复播放）
-// 对接 爱赞美 新版 JSON 接口
-//   专辑搜索: /search/album?f=json&page_no=<页>&page_size=<条>&q=<关键词>
-//   专辑详情: /album/info?album_id=<ID>
-//   歌曲播放: 专辑详情里每首的 mFileLink
-//
-// 展示逻辑：
-//   一级=专辑卡片（官方专辑封面 mPicBig/mPicSmall，自带图、零额外请求）
-//   二级=该专辑内歌曲列表，点击直接播放 mp3
-//
-// 播放修复：drpy2 在未配置 play_json 时会强制 parse:1（走解析流程），
-//   导致 .mp3 直链被解析器错误接管而无法播放。
-//   故增加 play_json:[{re:"*",json:{parse:0,jx:0}}] 强制直接播放 mp3。
-//
-// 使用方式：作为 影视仓 站点条目中的 ext 蜘蛛脚本
-//   { "key":"izanmei","name":"爱赞美","type":3,
-//     "api":"https://gh-proxy.com/https://raw.githubusercontent.com/lcz410323/ysc/main/drpy2.min.js",
-//     "ext":"https://gh-proxy.com/https://raw.githubusercontent.com/lcz410323/ysc/main/izanmei.js",
-//     "searchable":1,"quickSearch":1,"filterable":0,"timeout":20 }
-// ============================================================
-
+// 爱赞美 drpy2 蜘蛛（播放修复v4 · 修复详情页崩溃Bug）
+// =========================================================================
+// ★ 关键修复：vod_id 用 "SONG##id"/"ALBUM##id" 命名（不含 /、非 http），
+//   drpy2 的 detail() 会走 rule.detailUrl.replaceAll("fyid",...) 分支；
+//   若不定义 detailUrl 字段则直接 throw 崩溃，导致 详情无法打开→选集看不到→播放失败。
+//   因此必须提供 detailUrl 占位（'fyid'），让 detail() 正常把 vod_id 传给二级。
+// =========================================================================
+// 机制（见 drpy2.min.js 源码）：
+//   搜索/一级/推荐 → js 段用全局 VODS（复数）返回列表
+//   二级（详情）→ js 段用全局 VOD（单数）返回单个详情对象
+//   detail(): orId=vod_url; detailUrl=vod_url.split("@@")[0];
+//     若 detailUrl 不含"/"且非http → url=rule.detailUrl.replaceAll("fyid",detailUrl)
 var rule = {
     title: '爱赞美',
     host: 'https://api.xiaohai.org',
-
-    // 分类（主页入口，实际以搜索为主）
-    class_name: '爱赞美',
-    class_url: 'hot',
-
-    // 搜索：专辑搜索自带封面图
-    searchUrl: 'https://api.xiaohai.org/search/album?f=json&page_no=1&page_size=20&q=**',
-
+    url: 'https://api.xiaohai.org/album/list?f=json&page_no=fypage',
+    // ★ 必填：vod_id为纯标识时让 detail() 不崩溃，'fyid' 占位原样回传
+    detailUrl: 'fyid',
+    class_name: '全部专辑',
+    class_url: 'album/list',
+    searchUrl: 'https://api.xiaohai.org/search/song?f=json&page_no=1&page_size=15&q=**',
     searchable: 2,
     quickSearch: 1,
     filterable: 0,
-    timeout: 20000,
+    timeout: 25000,
+    // ★ 播放修复（v5）：mp3 已实测为 play.j53.net 直链（200/206 正常）。
+    //   但 drpy2 的 playParse() 在规则「未定义 play_json」时会于结尾强制 set parse=1，
+    //   导致直链 mp3 被影视仓当成"待解析"走一遍解析流程、播放器识别不到时长（显示0）。
+    //   解法：play_parse=true + 用 lazy 把 input 改成 {parse:0,url,jx:0} 直接播放，
+    //        且必须配 play_json:[]（空数组），否则会再次被 !play_json 分支覆盖回 parse=1。
     play_parse: true,
+    lazy: 'js:input={parse:0,url:input,jx:0};',
+    play_json: [],
+    headers: { 'User-Agent': 'Mozilla/5.0', 'Accept': 'application/json' },
 
-    headers: {
-        'User-Agent': 'Mozilla/5.0',
-        'Accept': 'application/json'
-    },
+    // 推荐/首页：新专辑墙（VODS）
+    推荐: 'js:var host="https://api.xiaohai.org/";var obj=JSON.parse(request(host+"album/list?f=json&page_no=1").trim());var items=(obj&&obj.mItems)||[];VODS=[];var i,it,id,pic,info;for(i=0;i<items.length;i++){it=items[i]||{};id=it.mAlbumId;if(!id)continue;pic=it.mPicSmall||it.mPicBig||"";info=(it.mAuthor||"").replace(/[#$@]/g,"")+"-"+(it.mSongsTotal?("共"+it.mSongsTotal+"首"):"")+"-"+(it.mPublishTime||"");VODS.push({vod_id:"ALBUM##"+id,vod_name:String(it.mTitle||"").replace(/[#$@]/g,""),vod_pic:pic,vod_remarks:info});}',
 
-    // ===== 搜索：按专辑搜索，结果带封面 =====
-    // drpy2 搜索 js 上下文可用：KEY(关键词)、MY_URL、HOST、request()
-    // 结果赋给全局 VODS 数组。
-    // vod_id = 专辑ID（供二级读取）；vod_pic = 专辑封面
-    搜索: 'js:' +
-        'var q = encodeURIComponent(KEY || "");' +
-        'var u = "https://api.xiaohai.org/search/album?f=json&page_no=1&page_size=20&q=" + q;' +
-        'var obj = JSON.parse(request(u).trim());' +
-        'var items = (obj && obj.mItems) || [];' +
-        'VODS = [];' +
-        'for (var i=0;i<items.length;i++){var it=items[i];if(!it||!it.mAlbumId)continue;' +
-        'VODS.push({vod_id:it.mAlbumId,vod_name:it.mTitle||"",' +
-        'vod_pic:it.mPicSmall||it.mPicBig||"",vod_remarks:it.mAuthor||""});}',
+    // 分类页：专辑列表（VODS，input=已含页码的分类URL）
+    一级: 'js:var host="https://api.xiaohai.org/";var u=String(input||"");if(u.indexOf("http")<0){u=host+u;}var obj=JSON.parse(request(u).trim());var items=(obj&&obj.mItems)||[];VODS=[];var i,it,id,pic,info;for(i=0;i<items.length;i++){it=items[i]||{};id=it.mAlbumId;if(!id)continue;pic=it.mPicSmall||it.mPicBig||"";info=(it.mAuthor||"").replace(/[#$@]/g,"")+"-"+(it.mSongsTotal?("共"+it.mSongsTotal+"首"):"")+"-"+(it.mPublishTime||"");VODS.push({vod_id:"ALBUM##"+id,vod_name:String(it.mTitle||"").replace(/[#$@]/g,""),vod_pic:pic,vod_remarks:info});}',
 
-    // ===== 二级：请求专辑详情，列出该专辑内歌曲供播放 =====
-    // drpy2 二级 js 上下文：input(=MY_URL=vod_id=专辑ID)、request()，结果赋给全局 VOD
-    二级: 'js:' +
-        'var obj = JSON.parse(request("https://api.xiaohai.org/album/info?album_id=" + input).trim());' +
-        'var songs = (obj && obj.mItems) || [];' +
-        'var urls = [];' +
-        'for (var i=0;i<songs.length;i++){var s=songs[i];if(!s||!s.mTitle)continue;' +
-        'var src = s.mFileLink || ("https://play.j53.net/song/p/" + s.mSongId + ".mp3");' +
-        'urls.push(s.mTitle + "$" + src);}' +
-        'VOD = {vod_id:input,vod_name:obj.mTitle||"",' +
-        'vod_pic:obj.mPicBig||obj.mPicSmall||"",' +
-        'vod_play_from:"爱赞美",vod_play_url:urls.join("#"),' +
-        'vod_remarks:obj.mAuthor||"",vod_year:obj.mPublishTime||""};',
+    // 搜索：歌曲（VODS）
+    搜索: 'js:var host="https://api.xiaohai.org/";var q=encodeURIComponent(KEY||"");var obj=JSON.parse(request(host+"search/song?f=json&page_no=1&page_size=15&q="+q).trim());var items=(obj&&obj.mItems)||[];VODS=[];var i,it,id,pic;for(i=0;i<items.length;i++){it=items[i]||{};id=it.mSongId;if(!id)continue;pic="";try{var d=JSON.parse(request(host+"song/info?song_id="+id).trim());pic=d.mPicBig||d.mPicSmall||"";}catch(e){pic="";}VODS.push({vod_id:"SONG##"+id,vod_name:String(it.mTitle||"").replace(/[#$@]/g,""),vod_pic:pic,vod_remarks:String(it.mAuthor||"").replace(/[#$@]/g,"")+" - "+String(it.mAlbumTitle||"").replace(/[#$@]/g,"")});}',
 
-    // ===== 播放：强制直接播放 mp3，不走解析 =====
-    // 关键修复：不加 play_json 时 drpy2 会强制 parse:1（解析），mp3 直链因此播放失败。
-    // play_json 数组分支对任何 url(re="*") 应用 parse:0、jx:0，直接播放原链接。
-    play_json: [{ re: '*', json: { parse: 0, jx: 0 } }],
-
-    lazy: 'js:input={parse:0,url:input,jx:0,header:{"User-Agent":"Mozilla/5.0","Referer":"https://www.izanmei.cc/"}}'
+    // 二级 详情：VOD 单数（input=vod_id，如 SONG##id / ALBUM##id）
+    二级: 'js:var host="https://api.xiaohai.org/";var PLAY="https://play.j53.net/song/p/";var raw=String(input||"").replace(/@@.*$/,"");var cln=function(s){return String(s||"").replace(/[#$@]/g,"").replace(/\\s+$/,"");};if(raw.indexOf("ALBUM##")===0){var d=JSON.parse(request(host+"album/info?album_id="+raw.split("##")[1]).trim());var items=(d&&d.mItems)||[];var al=[];for(var i=0;i<items.length;i++){var x=items[i]||{};if(!x.mSongId)continue;var nm=cln(x.mTitle);var t=(x.mSongOrder?x.mSongOrder+". ":"")+nm;al.push(t+"$"+PLAY+x.mSongId+".mp3");}VOD={vod_id:"ALBUM##"+raw.split("##")[1],vod_name:cln(d.mAlbumTitle||d.mTitle),vod_pic:(d.mPicBig||d.mPicSmall)||"",vod_remarks:(cln(d.mAuthor))+"-"+(items.length?("共"+items.length+"首"):""),vod_actor:cln(d.mAuthor),vod_area:(d.mPublishTime||""),vod_play_from:"爱赞美-专辑",vod_play_url:al.join("#")};}else{var sid=raw.indexOf("SONG##")===0?raw.split("##")[1]:raw;var s=JSON.parse(request(host+"song/info?song_id="+sid).trim());var name=cln(s.mTitle);var author=cln(s.mAuthor);var album=cln(s.mAlbumTitle);var pic=s.mPicBig||s.mPicSmall||"";var info="演唱："+author+"\\n专辑："+album+"\\n点击量："+(s.mHits||"");VOD={vod_id:"SONG##"+sid,vod_name:name,vod_pic:pic,vod_remarks:author+" - "+album,vod_actor:author,vod_area:album,vod_director:album,vod_score:"爱赞美",vod_content:info,vod_play_from:"爱赞美",vod_play_url:name+"$"+PLAY+sid+".mp3"}}'
 };

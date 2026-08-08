@@ -7,9 +7,9 @@ var rule = {
     host: 'https://api.xiaohai.org',
 
     // 分类入口（专辑列表）
-    class_name: '所有专辑',
-    class_url: 'album/list?f=json&page_no=fypage',
-    url: 'https://api.xiaohai.org/album/list?f=json&page_no=fypage',
+    class_name: '全部&全长专辑&单曲EP&现场Live&精选集&原创集&伴奏集&诗歌本&经文诗歌&有声读物',
+    class_url: 'type=0&type=1201&type=1202&type=1203&type=1204&type=1205&type=1206&type=1207&type=1208&type=1209',
+    url: 'https://api.xiaohai.org/album/filterlist?f=json&size=15&page=fypage&fyclass',
 
     // 搜索入口（单曲搜索）
     searchUrl: 'https://api.xiaohai.org/search/song?f=json&page_no=1&page_size=20&q=**',
@@ -27,7 +27,7 @@ var rule = {
 
     // 1. 首页推荐：vod_id 组装为完整的专辑详情 API 链接
     推荐: `js:
-        var u = "https://api.xiaohai.org/album/list?f=json&page_no=1";
+        var u = "https://api.xiaohai.org/plaza/RecommendAlbum?limit=24";
         VODS = [];
         try {
             var h = request(u).trim();

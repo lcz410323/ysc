@@ -1,5 +1,5 @@
 // ============================================================
-// 爱赞美 drpy2 蜘蛛脚本（修正为 mVideoHits 点击量版）
+// 爱赞美 drpy2 蜘蛛脚本（删除全部类型与最新发布选项版）
 // ============================================================
 
 var rule = {
@@ -9,19 +9,66 @@ var rule = {
     // 分类入口
     class_name: 'MV视频&全部专辑&长专辑&单曲EP&现场Live&精选集&原创集&伴奏集&诗歌本&经文诗歌&有声读物',
     class_url: 'is_video=1&type=0&type=1201&type=1202&type=1203&type=1204&type=1205&type=1206&type=1207&type=1208&type=1209',
-    url: 'https://api.xiaohai.org/album/filterlist?f=json&size=15&page=fypage&fyclass',
+    url: 'https://api.xiaohai.org/album/filterlist?f=json&size=20&page=fypage&fyclass',
 
     searchUrl: 'https://api.xiaohai.org/search/singer?f=json&page_no=1&page_size=20&q=**',
 
     searchable: 2,
     quickSearch: 1,
-    filterable: 0,
+    filterable: 1,
     timeout: 15000,
     play_parse: true,
 
     headers: {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
         'Accept': 'application/json, text/plain, */*'
+    },
+
+    // 筛选配置：已去掉“全部类型”和“最新发布”
+    filter: {
+        "is_video=1": [{
+                "key": "type",
+                "name": "视频类型",
+                "value": [{
+                        "n": "MV&现场",
+                        "v": "1703"
+                    },
+                    {
+                        "n": "歌词字幕",
+                        "v": "1701"
+                    },
+                    {
+                        "n": "赞美舞蹈",
+                        "v": "1704"
+                    },
+                    {
+                        "n": "见证访谈",
+                        "v": "1708"
+                    },
+                    {
+                        "n": "诗歌故事",
+                        "v": "1706"
+                    },
+                    {
+                        "n": "赞美会",
+                        "v": "1702"
+                    }
+                ]
+            },
+            {
+                "key": "sort",
+                "name": "排序依据",
+                "value": [{
+                        "n": "观看次数",
+                        "v": "2"
+                    },
+                    {
+                        "n": "收藏数",
+                        "v": "3"
+                    }
+                ]
+            }
+        ]
     },
 
     // 1. 首页推荐：100%原封不动
@@ -63,7 +110,7 @@ var rule = {
         } catch(e) { log("推荐加载失败: " + e.message); }
     `,
 
-    // 2. 一级分类：已更新为读取 mVideoHits
+    // 2. 一级分类：全方位兼容筛选参数提取（支持 MY_FL 与 ext 解码）
     一级: `js:
         var u = input;
         var isVideo = false;
@@ -80,7 +127,17 @@ var rule = {
 
         if (u.indexOf("is_video=1") >= 0) {
             isVideo = true;
-            u = "https://api.xiaohai.org/video/filterlist?f=json&size=20&page=" + pageNo + "&sort=0&type=0";
+
+            var sortVal = "";
+            var typeVal = "";
+
+            // 途径 A：优先从 drpy2 内置全局变量 MY_FL 读取
+            if (typeof MY_FL !== "undefined" && MY_FL) {
+                if (MY_FL.sort !== undefined && MY_FL.sort !== "") { sortVal = String(MY_FL.sort); }
+                if (MY_FL.type !== undefined && MY_FL.type !== "") { typeVal = String(MY_FL.type); }
+            }
+
+            u = "https://api.xiaohai.org/video/filterlist?f=json&size=20&page=" + pageNo + "&sort=" + sortVal + "&type=" + typeVal;
         } else if (u.indexOf("http") < 0) {
             u = "https://api.xiaohai.org/" + u;
         }
@@ -111,13 +168,12 @@ var rule = {
 
                     VODS.push({
                         vod_id: encodeURIComponent(packedId),
-                        vod_name: title + " · [MV]",
+                        vod_name: title + "【MV】",
                         vod_pic: pic,
                         type_name: "MV视频",
                         vod_actor: author,
                         vod_year: "2026",
-                        vod_remarks: [author, hitsCount, duration].filter(Boolean).join(" · ")           // 右下角展示时长
-                        
+                        vod_remarks: [author, hitsCount, duration].filter(Boolean).join(" · ")
                     });
                 } else {
                     if (!it.mAlbumId) continue;
@@ -296,6 +352,7 @@ var rule = {
                 var songs = (d && d.mItems) || [];
                 var playList = [];
 
+                // 1. 保留原有逻辑：遍历所有单曲，确保所有曲目全部能加载出来
                 for (var j = 0; j < songs.length; j++) {
                     var x = songs[j];
                     if (!x) continue;
@@ -312,19 +369,71 @@ var rule = {
                     playList.push(showTitle + "$" + playUrl);
                 }
 
-                var titleName = String(d.mTitle || "音乐合集").replace(/[#$@#]/g, "").trim();
-                if (titleName === "音乐合集" && songs.length > 0 && songs[0].mAuthor) {
-                    titleName = String(songs[0].mAuthor).split(" feat")[0];
+                // 2. 基础 VOD 元数据读取
+                var titleName = String(d.mTitle || "").replace(/[#$@#]/g, "").trim();
+                var coverPic = d.mPicBig || d.mPicSmall || "";
+                var typeName = d.mAlbumType || d.mAlbumGenre || "";
+                var actorName = String(d.mAuthor || "").replace(/feat.*/i, "").trim();
+                var directorName = d.mComposer || d.mProducer || d.mLyricist || actorName || "赞美事工团队";
+                var rawYear = String(d.mPublishTime || d.mYear || "").trim();
+                var infoDetail = String(d.mInfo || d.mDetail || "").replace(/[#$@#]/g, "").trim();
+
+                // 3. ✨ 判断是否来自“搜索歌手单曲”接口，并动态提取关联专辑信息
+                var isFromSingerSongList = (reqUrl.indexOf("artist/SongList") >= 0);
+
+                if (isFromSingerSongList && songs.length > 0) {
+                    
+
+                    // 在单曲列表中寻找第一首拥有 mAlbumId 的歌曲
+                    var targetAlbumId = "";
+                    for (var k = 0; k < songs.length; k++) {
+                        if (songs[k] && songs[k].mAlbumId) {
+                            targetAlbumId = songs[k].mAlbumId;
+                            break;
+                        }
+                    }
+
+                    // 如果找到了 album_id，额外发一次请求获取对应的真实专辑 VOD 属性
+                    if (targetAlbumId) {
+                        try {
+                            var albumRes = request("https://api.xiaohai.org/album/info?album_id=" + targetAlbumId).trim();
+                            var albumObj = JSON.parse(albumRes);
+                            if (albumObj) {
+                                // 优先使用专辑的封面、简介和年份
+                                if (!coverPic) { coverPic = albumObj.mPicBig || albumObj.mPicSmall || ""; }
+                                if (!infoDetail && (albumObj.mInfo || albumObj.mDetail)) {
+                                    infoDetail = "【代表专辑：《" + (albumObj.mTitle || "") + "》】" + String(albumObj.mInfo || albumObj.mDetail).replace(/[#$@#]/g, "").trim();
+                                }
+                                if (!rawYear) { rawYear = String(albumObj.mPublishTime || albumObj.mYear || "").trim(); }
+                                if (!typeName) { typeName =String(albumObj.mAlbumType || albumObj.mAlbumGenre || "").trim(); }
+                            }
+                        } catch(e_album) {
+                            log("搜索歌手关联专辑 VOD 信息提取失败: " + e_album.message);
+                        }
+                    }
                 }
 
-                var coverPic = d.mPicBig || d.mPicSmall || (songs.length > 0 ? (songs[0].mPicBig || songs[0].mPicSmall) : "");
-                var typeName = d.mAlbumType || d.mAlbumGenre || (reqUrl.indexOf("SongList") >= 0 ? "热门单曲" : "精选专辑");
-                var actorName = String(d.mAuthor || (songs.length > 0 ? songs[0].mAuthor : "爱赞美合唱团")).replace(/feat.*/i, "").trim();
-                var directorName = d.mComposer || d.mProducer || d.mLyricist || actorName || "赞美事工团队";
-                var rawYear = String(d.mPublishTime || d.mYear || (songs.length > 0 ? songs[0].mPublishTime : "")).trim();
-                var vodYear = rawYear ? rawYear.substring(0, 4) : "未知年份";
+                // 4. 兜底补全，保证 VOD 字段完整
+               if (!titleName || titleName === "音乐合集") {
+                    if (songs.length > 0 && songs[0].mAuthor) {
+                        titleName = String(songs[0].mAuthor).split(" feat")[0];
+                    } else {
+                        titleName = "热门单曲合集";
+                    }
+                }
+                if (!coverPic && songs.length > 0) {
+                    coverPic = songs[0].mPicBig || songs[0].mPicSmall || "";
+                }
+                if (!actorName && songs.length > 0) {
+                    actorName = String(songs[0].mAuthor || "爱赞美合唱团").replace(/feat.*/i, "").trim();
+                }
+                if (!typeName) { typeName = "精选专辑"; }
+
+                var vodYear = rawYear ? rawYear.substring(0, 4) : "2026";
                 var vodArea = d.mAlbumLang || d.mLanguage || "华语赞美诗";
-                var infoDetail = String(d.mInfo || d.mDetail || "收录该专辑/音乐人的精选优质音频资源。").replace(/[#$@#]/g, "").trim();
+                if (!infoDetail) {
+                    infoDetail = "收录该音乐人/歌手的精选优质音频资源，全辑共 " + playList.length + " 首曲目。";
+                }
 
                 var finalPlayUrl = playList.join("#");
                 if (!finalPlayUrl) {
@@ -346,6 +455,7 @@ var rule = {
                     vod_play_url: finalPlayUrl
                 };
             }
+
 
         } catch(e) { 
             log("二级全字段解析异常: " + e.message); 

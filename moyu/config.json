@@ -26,8 +26,8 @@
             "filterable": 1,
             "ext": {
                 "home": {
-                    "douban": "./lib/douban.json",
-                    "tmdb": "./lib/tmdb.json"
+                    "douban": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/douban.json",
+                    "tmdb": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/tmdb.json"
                 }
             }
         },
@@ -101,7 +101,7 @@
                     "http://woggpan.xxooo.cf",
                     "https://www.wogg.one"
                 ],
-                "filter": "./lib/wogg.json"
+                "filter": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/wogg.json"
             }
         },
         {
@@ -803,7 +803,7 @@
             "quickSearch": 0,
             "changeable": 0,
             "ext": {
-                "json": "./lib/89370c8ddf36b5e1beb4d71adb921bda.txt"
+                "json": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/89370c8ddf36b5e1beb4d71adb921bda.txt"
             }
         },
         {
@@ -819,7 +819,7 @@
             "quickSearch": 0,
             "changeable": 0,
             "ext": {
-                "json": "./lib/d7a21cf34ede56f5c686ecfba5fc7e3f.txt"
+                "json": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/d7a21cf34ede56f5c686ecfba5fc7e3f.txt"
             }
         },
         {
@@ -835,7 +835,7 @@
             "quickSearch": 0,
             "changeable": 0,
             "ext": {
-                "json": "./lib/8f55d520f8d70056695740ef151744a7.txt"
+                "json": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/8f55d520f8d70056695740ef151744a7.txt"
             }
         },
         {
@@ -851,7 +851,7 @@
             "quickSearch": 0,
             "changeable": 0,
             "ext": {
-                "json": "./lib/c66a4b5356141c49fd45ec51568017b4.txt"
+                "json": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/c66a4b5356141c49fd45ec51568017b4.txt"
             }
         },
         {
@@ -1002,7 +1002,7 @@
             "indexs": 0,
             "searchable": 1,
             "filterable": 1,
-            "ext": "./lib/fishdrive.json"
+            "ext": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/fishdrive.json"
         },
         {
             "key": "Wallpaper",

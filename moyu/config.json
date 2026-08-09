@@ -1,5 +1,5 @@
 {
-    "spider": "./fish08022249.jar;md5;9ada45a2b9f084e9100aa07e8fa74fe5",
+    "spider": "https://github.com/lcz410323/ysc/raw/refs/heads/main/moyu/fish08022249.jar;md5;9ada45a2b9f084e9100aa07e8fa74fe5",
     "logo": "https://modelscope-resouces.oss-cn-zhangjiakou.aliyuncs.com/avatar%2Ff5309172-1af6-4c4f-a1c5-a4773a1cc718.gif",
     "wallpaper": "http://127.0.0.1:9978/proxy?do=wallpaper",
     "danmaku": "http://127.0.0.1:5266/danmu/webhtv?name={name}&episode={episode}",
@@ -8,8 +8,8 @@
             "key": "izanmei",
             "name": "💝┆爱赞┆美网",
             "type": 3,
-            "api": "clan://localhost/MT2/apks/izanmei_正式发布包/drpy2.min.js",
-            "ext": "clan://localhost/MT2/apks/izanmei_正式发布包/izanmei.js",
+            "api": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/js/drpy2.min.js",
+            "ext": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/js/izanmei.js",
             "searchable": 1,
             "quickSearch": 1,
             "filterable": 0,

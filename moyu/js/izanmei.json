@@ -1,0 +1,21 @@
+{
+    "spider": "",
+    "wallpaper": "",
+    "parses": [],
+    "flags": [],
+    "sites": [
+        {
+            "key": "izanmei",
+            "name": "爱赞美",
+            "type": 3,
+            "api": "./drpy2.min.js",
+            "ext": "./izanmei.js",
+            "searchable": 1,
+            "quickSearch": 1,
+            "filterable": 0,
+            "timeout": 20
+        }
+    ],
+    "lives": [],
+    "spiders": []
+}

@@ -57,7 +57,7 @@
             "style": {
                 "type": "list"
             },
-            "ext": "./lib/share.json"
+            "ext": "https://gh-proxy.com/https://github.com/lcz410323/ysc/raw/main/moyu/lib/share.json"
         },
         {
             "key": "ALLLive",

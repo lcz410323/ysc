@@ -264,6 +264,34 @@ var rule = {
                     }
                 }
             } catch(e2) {}
+            try {
+                var videoSearchUrl = "https://api.xiaohai.org/search/video?f=json&page_no=1&page_size=20&q=" + wd;
+                var h3 = request(videoSearchUrl).trim();
+                var obj3 = JSON.parse(h3);
+                var items3 = (obj3 && obj3.mItems) || [];
+                for (var v = 0; v < items3.length; v++) {
+                    var mv = items3[v];
+                    if (!mv || !mv.videoId) continue;
+                    var mvId = mv.videoId;
+                    var mvName = String(mv.videoName || "MV视频").trim();
+                    var mvAuthor = String(mv.artistName || "爱赞美事工").trim();
+                    var mvPic = mv.videoCover || "";
+                    var mvDur = String(mv.duration || "MV视频").trim();
+                    var mvHits = mv.videoHits ? ("🔥 " + mv.videoHits) : "";
+                    var mvPageUrl = "https://wozan.org/video/" + mvId + ".html";
+                    var mvPackedId = mvPageUrl + "||" + mvName + "||" + mvPic + "||" + mvAuthor + "||" + mvDur;
+                    VODS.push({
+                        vod_id: encodeURIComponent(mvPackedId),
+                        vod_name: "🎬 " + mvName + "【MV】",
+                        vod_pic: mvPic,
+                        type_name: "MV视频",
+                        vod_actor: mvAuthor,
+                        vod_year: "",
+                        vod_area: "",
+                        vod_remarks: [mvAuthor, mvHits, mvDur].filter(Boolean).join(" · ")
+                    });
+                }
+            } catch(e3) {}
         } catch(e) {}
     `,
 
